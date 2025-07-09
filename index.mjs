@@ -37,33 +37,36 @@
 //    node index.js
 // 7. Open your web browser and navigate to http://localhost:3000/get-token
 //    to trigger the access token request.
-
-const express = require('express');
+import * as openid_client from 'openid-client'
+import express from 'express';
 // Corrected import: The 'openid-client' library exports the Issuer class directly.
 // We should not destructure it with {}.
-const { Issuer } = require('openid-client');
-const fs = require('fs');
-const jose = require('jose');
+
+import fs from 'fs';
+import * as jose from 'jose'
 
 const app = express();
 const port = 3000;
 
 // --- Configuration ---
 // The issuer URL for Banco de Portugal's ADFS OIDC configuration.
-const bdpIssuerUrl = 'https://sts-cert.bportugal.net/adfs';
+const bdpIssuerUrl = new URL('https://sts-cert.bportugal.net/adfs/.well-known/openid-configuration');
 const privateKeyPath = './private.key';
 
 // --- IMPORTANT ---
 // Replace these with the actual credentials for your application.
-const clientId = 'YOUR_CLIENT_ID'; // <-- Replace with your Client ID
-const audience = 'YOUR_AUDIENCE';   // <-- Replace with the Audience (e.g., the API identifier)
+const clientId = 'https://bpnetsvc-faitdexxx-cert.bportugal.pt/'; // <-- Replace with your Client ID
+const audience = 'https://wwwcert.bportugal.net/apigw/vop/';   // <-- Replace with the Audience (e.g., the API identifier)
 
 // This is the main function to get the token
-async function getAccessToken() {
+async  function getAccessToken() {
+
     try {
         console.log('Discovering OIDC configuration...');
         // Discover the issuer's metadata from the .well-known endpoint
-        const bdpIssuer = await Issuer.discover(bdpIssuerUrl);
+        console.log(openid_client)
+
+        const bdpIssuer = await openid_client.discovery(bdpIssuerUrl);
         console.log('Discovered issuer: %s', bdpIssuer.issuer);
         console.log('Token endpoint: %s', bdpIssuer.token_endpoint);
 
@@ -117,9 +120,6 @@ app.get('/get-token', async (req, res) => {
         return res.status(400).send('<h1>Configuration Needed</h1><p>Please replace the placeholder <code>YOUR_CLIENT_ID</code> and <code>YOUR_AUDIENCE</code> in the <code>index.js</code> file with your actual credentials.</p>');
     }
 
-    if (!fs.existsSync(privateKeyPath)) {
-        return res.status(400).send(`<h1>Configuration Needed</h1><p>Private key file not found at <code>${privateKeyPath}</code>. Please generate a key pair and place the private key in the correct location.</p>`);
-    }
 
     try {
         const tokenSet = await getAccessToken();
