@@ -32,9 +32,19 @@ class OpenIDAuthenticator {
         try {
             // Load private key
             const privateKeyPem = fs.readFileSync(CONFIG.privateKeyPath, 'utf8');
-            this.privateKey = crypto.createPrivateKey(privateKeyPem);
+            const privateKeyBags = pfx.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+            const privateKey = privateKeyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
 
-            // Discover OpenID issuer metadata
+// Convert to PEM format
+            const privateKeyPem = forge.pki.privateKeyToPem(privateKey.key);
+            this.privateKey = crypto.createPrivateKey({
+                key:fs.readFileSync(CONFIG.pfxPath),
+                format:p12,
+                passphrase:123456789
+            });
+
+            //
+            //  OpenID issuer metadata
             console.log('Discovering OpenID issuer...');
             this.issuerMetadata = await discovery(new URL(CONFIG.issuer));
 
@@ -52,7 +62,7 @@ class OpenIDAuthenticator {
         try {
             const now = Math.floor(Date.now() / 1000);
 
-            const jwt = await new SignJWT({
+            const jwt = await new SignJtWT({
                 iss: CONFIG.clientId,
                 sub: CONFIG.clientId,
                 aud: this.issuerMetadata.token_endpoint,
@@ -78,10 +88,9 @@ class OpenIDAuthenticator {
     async getAccessToken() {
         try {
             const assertion = await this.createJWTAssertion();
-
+            consol
             const tokenResponse = await clientCredentialsGrant(
                 this.issuerMetadata,
-                this.clientMetadata,
                 {
                     scope: CONFIG.scope,
                     client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
