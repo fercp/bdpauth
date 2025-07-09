@@ -31,18 +31,21 @@ class OpenIDAuthenticator {
     async initialize() {
         try {
             // Load private key
-            const privateKeyPem = fs.readFileSync(CONFIG.privateKeyPath, 'utf8');
-            const privateKeyBags = pfx.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-            const privateKey = privateKeyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+            const pfx = fs.readFileSync(pfxPath);
+            const p12Asn1 = forge.asn1.fromDer(pfx.toString('binary'));
+            const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, pfxPassword);
 
-// Convert to PEM format
-            const privateKeyPem = forge.pki.privateKeyToPem(privateKey.key);
-            this.privateKey = crypto.createPrivateKey({
-                key:fs.readFileSync(CONFIG.pfxPath),
-                format:p12,
-                passphrase:123456789
-            });
+            let certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag][0];
+            let keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag][0];
 
+            const certificate = forge.pki.certificateToPem(certBag.cert);
+            const privateKey = forge.pki.privateKeyToPem(keyBag.key);
+
+// Get SHA-1 thumbprint of the cert (Key Identifier)
+            const certDer = forge.asn1.toDer(forge.pki.certificateToAsn1(certBag.cert)).getBytes();
+            const sha1 = forge.md.sha1.create();
+            sha1.update(certDer);
+            const kid = sha1.digest().toHex().toUpperCase();
             //
             //  OpenID issuer metadata
             console.log('Discovering OpenID issuer...');
