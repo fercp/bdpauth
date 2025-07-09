@@ -41,9 +41,11 @@ import * as openid_client from 'openid-client'
 import express from 'express';
 // Corrected import: The 'openid-client' library exports the Issuer class directly.
 // We should not destructure it with {}.
+import { EnvHttpProxyAgent } from 'undici'
 
 import fs from 'fs';
 import * as jose from 'jose'
+import {customFetch} from "openid-client";
 
 const app = express();
 const port = 3000;
@@ -65,8 +67,16 @@ async  function getAccessToken() {
         console.log('Discovering OIDC configuration...');
         // Discover the issuer's metadata from the .well-known endpoint
         console.log(openid_client)
+        process.env.HTTP_PROXY='http://gmproxy.kfs.local:8080'
+        const envHttpProxyAgent = new EnvHttpProxyAgent({ httpProxy: 'http://my.proxy.server:8080', httpsProxy: 'http://my.proxy.server:8443', noProxy: 'localhost' })
+        const options = {};
 
-        const bdpIssuer = await openid_client.discovery(bdpIssuerUrl);
+// Assign a custom fetch function to the configuration
+        options[customFetch] = (...args) => {
+            return fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent });
+        };
+
+        const bdpIssuer = await openid_client.discovery(bdpIssuerUrl, clientId, undefined, undefined, options );
         console.log('Discovered issuer: %s', bdpIssuer.issuer);
         console.log('Token endpoint: %s', bdpIssuer.token_endpoint);
 
