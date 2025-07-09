@@ -31,7 +31,7 @@
 //    npm init -y
 // 3. Install the required dependencies:
 //    npm install express openid-client jose
-// 4. Replace the placeholder value for `clientId` with your actual Client ID.
+// 4. Replace the placeholder values for `clientId` and `audience` with your actual credentials.
 // 5. Place your `private.key` file in the same directory.
 // 6. Run the application:
 //    node index.js
@@ -39,6 +39,8 @@
 //    to trigger the access token request.
 
 const express = require('express');
+// Corrected import: The 'openid-client' library exports the Issuer class directly.
+// We should not destructure it with {}.
 const { Issuer } = require('openid-client');
 const fs = require('fs');
 const jose = require('jose');
@@ -52,8 +54,9 @@ const bdpIssuerUrl = 'https://sts-cert.bportugal.net/adfs';
 const privateKeyPath = './private.key';
 
 // --- IMPORTANT ---
-// Replace this with the actual Client ID for your application.
+// Replace these with the actual credentials for your application.
 const clientId = 'YOUR_CLIENT_ID'; // <-- Replace with your Client ID
+const audience = 'YOUR_AUDIENCE';   // <-- Replace with the Audience (e.g., the API identifier)
 
 // This is the main function to get the token
 async function getAccessToken() {
@@ -87,6 +90,7 @@ async function getAccessToken() {
         // openid-client will automatically create and sign the client_assertion JWT.
         const tokenSet = await client.grant({
             grant_type: 'client_credentials',
+            audience: audience, // Specify the audience for the token
             // You might need to specify a scope depending on the API you want to access.
             // Consult the Banco de Portugal API documentation for required scopes.
             // scope: 'openid profile',
@@ -109,8 +113,8 @@ async function getAccessToken() {
 // --- Express Route ---
 // We create a simple web server to trigger the token request.
 app.get('/get-token', async (req, res) => {
-    if (clientId === 'YOUR_CLIENT_ID') {
-        return res.status(400).send('<h1>Configuration Needed</h1><p>Please replace the placeholder <code>YOUR_CLIENT_ID</code> in the <code>index.js</code> file with your actual client ID.</p>');
+    if (clientId === 'YOUR_CLIENT_ID' || audience === 'YOUR_AUDIENCE') {
+        return res.status(400).send('<h1>Configuration Needed</h1><p>Please replace the placeholder <code>YOUR_CLIENT_ID</code> and <code>YOUR_AUDIENCE</code> in the <code>index.js</code> file with your actual credentials.</p>');
     }
 
     if (!fs.existsSync(privateKeyPath)) {
