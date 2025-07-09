@@ -72,8 +72,17 @@ async  function getAccessToken() {
         const options = {};
 
 // Assign a custom fetch function to the configuration
-        options[customFetch] = (...args) => {
-            return fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent });
+        options[customFetch] = async (url, fetchOptions) => {
+            const headers = {
+                ...(fetchOptions.headers || {}),
+                'x-openid-client-jwt-bypass-issuer-check': 'true',
+            };
+
+            return fetch(url, {
+                ...fetchOptions,
+                headers,
+                dispatcher: envHttpProxyAgent,
+            });
         };
 
         const bdpIssuer = await openid_client.discovery(bdpIssuerUrl, clientId, undefined, undefined, options );
