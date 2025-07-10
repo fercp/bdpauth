@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",         // ES2021 aligns well with Node 16 features
+    "module": "CommonJS",       // or "ESNext", depending on your setup
+    "lib": ["ES2021", "DOM"],   // include ES2021 + DOM libs for webcrypto types
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true
+  }
+}
