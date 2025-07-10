@@ -1,6 +1,7 @@
 import * as client from 'openid-client';
 import { webcrypto } from 'crypto';
 import { readFileSync } from 'fs';
+import {CustomFetchOptions} from "openid-client";
 const { subtle } = webcrypto;
 
 let server!: URL
@@ -11,14 +12,10 @@ let clientMetadata!: Partial<client.ClientMetadata> | string | undefined
 (async () => {
     server = new URL('https://sts-cert.bportugal.net/adfs/.well-known/openid-configuration');
     clientId = 'https://bpnetsvc-faitdexxx-cert.bportugal.pt/'
-    clientMetadata = {
-        client_id: clientId,
-        token_endpoint_auth_method: 'private_key_jwt',
-        token_endpoint_auth_signing_alg: 'RS256'
-    }
+
     let envHttpProxyAgent = new undici.EnvHttpProxyAgent()
 
-    let config!: client.Configuration
+    key= {key:}
 
 // @ts-ignore
     config[client.customFetch] = (...args) => {
@@ -26,24 +23,25 @@ let clientMetadata!: Partial<client.ClientMetadata> | string | undefined
         return undici.fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent }) // prettier-ignore
     }
     const privateKey = await importPrivateKey('./private_key.pem');
+    key= {key:privateKey,kid:clientId}
 // @ts-ignore
     let config = await client.discovery(
         server,
         clientId,
         clientMetadata,
-        client.PrivateKeyJwt(privateKey),
+        client.PrivateKeyJwt(key,{[client.modifyAssertion]:(header,payload)=>{
+            payload.aud='xxx'
+            }}),
         {
-            [client.customFetch]: async (url: string, options: RequestInit): Promise<Response> => {
-                console.log('Fetching:', url);
-                return fetch(url, {
-                    ...options,
-                    headers: {
-                        ...options.headers,
-                        'X-Custom-Header': 'example'
-                    }
-                });
+            [client.customFetch]:  (...args) => {
+                // @ts-ignore
+                return undici.fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent }) // prettier-ignore
             }
         }
+    )
+    let tokenEndpointResponse = await client.clientCredentialsGrant(config,
+        'oidauth',
+        'resource'
     )
 })()
 
