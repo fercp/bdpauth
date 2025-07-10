@@ -32,6 +32,18 @@ let clientMetadata!: Partial<client.ClientMetadata> | string | undefined
         clientId,
         clientMetadata,
         client.PrivateKeyJwt(privateKey),
+        {
+            [client.customFetch]: async (url: string, options: RequestInit): Promise<Response> => {
+                console.log('Fetching:', url);
+                return fetch(url, {
+                    ...options,
+                    headers: {
+                        ...options.headers,
+                        'X-Custom-Header': 'example'
+                    }
+                });
+            }
+        }
     )
 })()
 
