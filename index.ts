@@ -16,6 +16,15 @@ let clientMetadata!: Partial<client.ClientMetadata> | string | undefined
         token_endpoint_auth_method: 'private_key_jwt',
         token_endpoint_auth_signing_alg: 'RS256'
     }
+    let envHttpProxyAgent = new undici.EnvHttpProxyAgent()
+
+    let config!: client.Configuration
+
+// @ts-ignore
+    config[client.customFetch] = (...args) => {
+        // @ts-ignore
+        return undici.fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent }) // prettier-ignore
+    }
     const privateKey = await importPrivateKey('./private_key.pem');
 // @ts-ignore
     let config = await client.discovery(
