@@ -11,13 +11,21 @@ public class WebClientConfig {
 
     @Bean
     public WebClient webClient() throws SSLException {
-        HttpClient httpClient = HttpClient.create().secure(sslContextSpec -> {
-            sslContextSpec.sslContext(SslContextBuilder.forClient()
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE));
-        });
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                }
+        };
 
-        return WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .build();
+        SSLContext javaSslContext = SSLContext.getInstance("TLS");
+        javaSslContext.init(null, trustAllCerts, new SecureRandom());
+
+// Wrap Java SSLContext in a Netty JdkSslContext
+        SslContext nettySslContext = new JdkSslContext(
+                javaSslContext,
+                true, // isClient
+                ClientAuth.NONE
     }
 }
